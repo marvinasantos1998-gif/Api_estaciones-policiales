@@ -3,59 +3,53 @@ import pandas as pd
 import requests
 import folium
 from streamlit_folium import st_folium
+from streamlit_geolocation import streamlit_geolocation
 
-# --- CONFIGURACIÓN DE PÁGINA ---
+# --- CONFIGURACIÓN DE PÁGINA (Debe ser lo primero) ---
 st.set_page_config(
     page_title="HND - Radar Policial",
     page_icon="🚓",
-    layout="wide" # Usamos ancho completo para mejor visualización del mapa
+    layout="wide"
 )
 
-# Importamos Google Fonts temáticas y aplicamos estilos globales
+# --- INYECCIÓN DE MAGIA CSS (Diseño y Tipografía) ---
 st.markdown("""
 <style>
-    /* Importar Fuentes */
     @import url('https://fonts.googleapis.com/css2?family=Stardos+Stencil:wght@400;700&family=VT323&display=swap');
 
-    /* Estilos Globales del Fondo y Texto Base */
     .stApp {
-        background-color: #050505; /* Negro casi total */
+        background-color: #050505;
         color: #e0e0e0;
     }
 
-    /* Estilo del Menú Lateral */
     [data-testid="stSidebar"] {
         background-color: #101010;
-        border-right: 2px solid #003366; /* Borde Azul Patrulla */
+        border-right: 2px solid #003366;
     }
 
-    /* Títulos Principales (Stencil) */
     h1, h2, h3, .stencil-text {
         font-family: 'Stardos Stencil', cursive !important;
         color: #FFFFFF !important;
         text-transform: uppercase;
         letter-spacing: 2px;
-        text-shadow: 0 0 10px #0044ff; /* Brillo neón azul sutil */
+        text-shadow: 0 0 10px #0044ff;
     }
 
-    /* Textos de Datos y UI (Monospace/Terminal) */
     p, span, label, .stNumberInput, .terminal-text {
         font-family: 'VT323', monospace !important;
         font-size: 1.2rem !important;
         color: #c0c0c0 !important;
     }
 
-    /* Estilo para los inputs numéricos del sidebar */
     .stNumberInput div div input {
         background-color: #1a1a1a !important;
-        color: #00ff00 !important; /* Texto verde terminal */
+        color: #00ff00 !important;
         border: 1px solid #333 !important;
     }
 
-    /* Botón Buscar Estilo Militar */
     .stButton>button {
         font-family: 'Stardos Stencil', cursive !important;
-        background-color: #cc9900 !important; /* Amarillo Precaución */
+        background-color: #cc9900 !important;
         color: #000000 !important;
         border: none !important;
         border-radius: 0px !important;
@@ -69,16 +63,14 @@ st.markdown("""
         transform: scale(1.02);
     }
 
-    /* --- ESTILO DE TARJETAS DE RESULTADOS (Magia de Radar) --- */
     .result-card {
         background-color: #0a0a0a;
-        border: 1px solid #0044ff; /* Borde Azul */
+        border: 1px solid #0044ff;
         padding: 15px;
         margin-bottom: 15px;
         position: relative;
         overflow: hidden;
     }
-    /* El borde neón de la tarjeta */
     .result-card::before {
         content: '';
         position: absolute;
@@ -87,56 +79,53 @@ st.markdown("""
         animation: radar-beam 2s linear infinite;
     }
 
-    .card-id {
-        font-family: 'VT323', monospace;
-        color: #00ffff; /* Cian */
-        font-size: 1.1rem;
-        font-weight: bold;
-    }
-    .card-title {
-        font-family: 'Stardos Stencil', cursive;
-        color: #ffffff;
-        font-size: 1.4rem;
-        margin-top: 5px;
-    }
-    .card-data {
-        font-family: 'VT323', monospace;
-        color: #ffcc00; /* Amarillo */
-        font-size: 1.1rem;
-    }
+    .card-id { font-family: 'VT323', monospace; color: #00ffff; font-size: 1.1rem; font-weight: bold; }
+    .card-title { font-family: 'Stardos Stencil', cursive; color: #ffffff; font-size: 1.4rem; margin-top: 5px; }
+    .card-data { font-family: 'VT323', monospace; color: #ffcc00; font-size: 1.1rem; }
 
-    /* Animación del haz del radar */
     @keyframes radar-beam {
         0% { transform: translateX(-100%); }
         100% { transform: translateX(100%); }
     }
-
 </style>
 """, unsafe_allow_html=True)
 
-# --- LÓGICA DE LA APP (Mantenemos la seguridad y la API) ---
-
-# Título con estilo inyectado
+# --- CABECERA PRINCIPAL ---
 st.markdown('<h1 style="text-align:center;">📡 SISTEMA DE RADAR HND</h1>', unsafe_allow_html=True)
 st.markdown('<p style="text-align:center; color:#888 !important;">Despacho Central - Localización de Unidades Metropolitanas (UMEP) y Postas</p>', unsafe_allow_html=True)
 st.write("---")
 
-# 1. Leer la API Key de los Secretos
+# --- 1. LECTURA DE API KEY ---
 try:
     api_key = st.secrets["GOOGLE_MAPS_API_KEY"]
 except KeyError:
-    st.error("⚠️ CRITICAL ERROR: Auth Key missing in secrets.")
+    st.error("⚠️ CRITICAL ERROR: API Key de Google Maps no encontrada en los Secretos de Streamlit.")
     st.stop()
 
-# 2. Sidebar Temático
+# --- 2. PANEL DE CONTROL LATERAL (Sidebar) ---
 st.sidebar.markdown('<h2>🛠️ PANEL DE CONTROL</h2>', unsafe_allow_html=True)
-st.sidebar.markdown('<p class="terminal-text">Ingrese coordenadas de referencia (WGS84):</p>', unsafe_allow_html=True)
 
-# Coordenadas por defecto (Siguatepeque como centro)
-user_lat = st.sidebar.number_input("LATITUD", value=14.5966, format="%.4f")
-user_lon = st.sidebar.number_input("LONGITUD", value=-87.8340, format="%.4f")
+# Sección GPS
+st.sidebar.markdown('<p class="terminal-text">1. ENLACE SATELITAL (GPS):</p>', unsafe_allow_html=True)
+st.sidebar.info("👆 Haz clic en 'Get Location' y permite el acceso en tu navegador para fijar tu posición.")
+gps_data = streamlit_geolocation()
 
-# 3. Función de búsqueda (sin cambios)
+# Coordenadas por defecto (Respaldo Táctico)
+lat_inicial = 14.5966
+lon_inicial = -87.8340
+
+# Captura de datos GPS si el usuario dio permisos
+if gps_data and gps_data.get('latitude') is not None and gps_data.get('longitude') is not None:
+    lat_inicial = gps_data['latitude']
+    lon_inicial = gps_data['longitude']
+    st.sidebar.success("📡 Señal GPS fijada con éxito.")
+
+# Sección Manual / Visualización de Coordenadas
+st.sidebar.markdown('<p class="terminal-text">2. COORDENADAS ACTUALES:</p>', unsafe_allow_html=True)
+user_lat = st.sidebar.number_input("LATITUD", value=lat_inicial, format="%.6f")
+user_lon = st.sidebar.number_input("LONGITUD", value=lon_inicial, format="%.6f")
+
+# --- 3. FUNCIÓN DE BÚSQUEDA GOOGLE PLACES API ---
 def buscar_estaciones_google(lat, lon, key):
     url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
     parametros = {
@@ -151,20 +140,18 @@ def buscar_estaciones_google(lat, lon, key):
         respuesta = requests.get(url, params=parametros)
         if respuesta.status_code == 200:
             return respuesta.json().get("results", [])
-    except:
-        pass
+    except Exception as e:
+        st.error(f"Error de conexión: {e}")
     return []
 
-# Layout de dos columnas para resultados y mapa
-col1, col2 = st.columns([1, 2]) # El mapa (col2) será más ancho
+# --- 4. ÁREA DE TRABAJO (Resultados y Mapa) ---
+col1, col2 = st.columns([1, 2])
 
-# Ejecución al presionar el botón
 with col1:
     buscar_btn = st.sidebar.button("📡 INICIAR RASTREO")
 
     if buscar_btn:
-        # Spinner temático
-        with st.spinner('🚨 Sintonizando frecuencias... Rastreando señal GPS...'):
+        with st.spinner('🚨 Sintonizando frecuencias... Rastreando señal...'):
             resultados = buscar_estaciones_google(user_lat, user_lon, api_key)
         
         if not resultados:
@@ -172,17 +159,14 @@ with col1:
         else:
             st.markdown('<h3>📍 UNIDADES MÁS CERCANAS</h3>', unsafe_allow_html=True)
             top_3 = resultados[:3]
-            
             estaciones_para_mapa = []
 
-            # Mostrar resultados usando HTML personalizado para las tarjetas
             for i, lugar in enumerate(top_3):
-                nombre = lugar.get("name").upper()
+                nombre = lugar.get("name", "Desconocido").upper()
                 direccion = lugar.get("vicinity", "N/A")
                 lat_est = lugar["geometry"]["location"]["lat"]
                 lon_est = lugar["geometry"]["location"]["lng"]
                 
-                # Guardar datos para el mapa
                 estaciones_para_mapa.append({
                     "nombre": nombre,
                     "lat": lat_est,
@@ -190,7 +174,6 @@ with col1:
                     "direccion": direccion
                 })
 
-                # Inyección de la tarjeta HTML
                 st.markdown(f"""
                 <div class="result-card">
                     <div class="card-id">OBJETIVO #{i+1}</div>
@@ -200,30 +183,27 @@ with col1:
                 </div>
                 """, unsafe_allow_html=True)
             
-            # Pasamos los datos a la columna del mapa
             st.session_state['map_data'] = estaciones_para_mapa
     else:
-        st.info("👈 Configure coordenadas y presione INICIAR RASTREO en el panel de control.")
+        st.info("👈 Fije sus coordenadas y presione INICIAR RASTREO.")
 
-# 4. Mapa Avanzado con Folium (Columna 2)
+# --- 5. RENDERIZADO DEL MAPA TÁCTICO (Folium) ---
 with col2:
     if 'map_data' in st.session_state and buscar_btn:
         st.markdown('<h3>🗺️ VISUALIZACIÓN TÁCTICA</h3>', unsafe_allow_html=True)
         
-        # Crear el mapa base centrado en el usuario (usando Tiles oscuros temáticos)
-        m = folium.Map(location=[user_lat, user_lon], zoom_start=13, tiles="CartoDB dark_matter")
+        m = folium.Map(location=[user_lat, user_lon], zoom_start=14, tiles="CartoDB dark_matter")
 
-        # --- MARCADOR DEL USUARIO (Pin especial) ---
+        # Marcador del Usuario (Punto de Origen)
         folium.Marker(
             [user_lat, user_lon],
             popup="<b>TU UBICACIÓN</b>",
             tooltip="Punto de Origen",
-            icon=folium.Icon(color="blue", icon="user", prefix='fa') # Icono de usuario FontAwesome
+            icon=folium.Icon(color="blue", icon="crosshairs", prefix='fa') 
         ).add_to(m)
 
-        # --- MARCADORES DE POLICÍA (Iconos de Patrulla) ---
+        # Marcadores de Postas Policiales
         for est in st.session_state['map_data']:
-            # Crear popup HTML bonito para el mapa
             html_popup = folium.Html(f"""
                 <div style="font-family: sans-serif; color: black;">
                     <h4 style="margin-bottom:5px;color:#003366;">🚨 {est['nombre']}</h4>
@@ -238,9 +218,7 @@ with col2:
                 [est['lat'], est['lon']],
                 popup=popup,
                 tooltip=est['nombre'],
-                # Icono de patrulla (coche) de FontAwesome, color rojo
                 icon=folium.Icon(color="red", icon="car", prefix='fa')
             ).add_to(m)
 
-        # Renderizar el mapa de Folium en Streamlit
-        st_folium(m, width=None, height=500, returned_objects=[])
+        st_folium(m, width=None, height=550, returned_objects=[])

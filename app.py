@@ -6,12 +6,12 @@ import requests
 st.title("🚓 Localizador Dinámico de Policía")
 st.write("Conectado a Google Maps para encontrar las estaciones reales más cercanas en Honduras.")
 
-# 1. Configuración del menú lateral
-st.sidebar.header("Configuración")
-# Para que funcione, el usuario (o el programador) debe poner su clave de Google
-api_key = st.sidebar.text_input("Ingresa tu API Key de Google Maps", type="password")
-
-st.sidebar.markdown("---")
+# 1. Leer la API Key de los Secretos de Streamlit
+try:
+    api_key = st.secrets["GOOGLE_MAPS_API_KEY"]
+except KeyError:
+    st.error("⚠️ Error: No se encontró la API Key en los secretos de Streamlit.")
+    st.stop()
 st.sidebar.header("Tus Coordenadas")
 st.sidebar.write("*(Ej. Siguatepeque: Lat 14.5966, Lon -87.8340)*")
 user_lat = st.sidebar.number_input("Latitud", value=14.5966, format="%.4f")

@@ -39,7 +39,7 @@ def buscar_estaciones_google(lat, lon, key):
 if st.sidebar.button("🔍 Buscar Estaciones", type="primary"):
     
     if not api_key:
-        st.error("⚠️ Necesitas ingresar una API Key de Google Maps para realizar la búsqueda dinámica.")
+        st.error("⚠️ Necesitas ingresar una API Key de Google Maps en Secretos de Streamlit para realizar la búsqueda dinámica.")
     else:
         with st.spinner('Buscando en Google Maps...'):
             resultados = buscar_estaciones_google(user_lat, user_lon, api_key)
@@ -72,4 +72,4 @@ if st.sidebar.button("🔍 Buscar Estaciones", type="primary"):
             df_mapa = pd.DataFrame(datos_mapa)
             st.map(df_mapa, color="color", size=200)
 else:
-    st.info("👈 Ingresa la API Key, tus coordenadas y presiona 'Buscar Estaciones'.")
+    st.info("👈 Ingresa tus coordenadas y presiona 'Buscar Estaciones'.")
